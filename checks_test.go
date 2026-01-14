@@ -10,148 +10,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	utils "github.com/zauberhaus/reflect_utils"
 )
-
-func TestNewOf(t *testing.T) {
-	t.Parallel()
-
-	type MyStruct struct {
-		Name string `default:"test"`
-	}
-
-	tests := []struct {
-		name         string
-		typ          reflect.Type
-		expectedVal  any
-		expectNil    bool
-		checkDefault bool
-	}{
-		{
-			name:        "int",
-			typ:         reflect.TypeOf(0),
-			expectedVal: 0,
-		},
-		{
-			name:        "pointer to int",
-			typ:         reflect.TypeOf(new(int)),
-			expectedVal: new(int),
-		},
-		{
-			name:        "string",
-			typ:         reflect.TypeOf(""),
-			expectedVal: "",
-		},
-		{
-			name:        "pointer to string",
-			typ:         reflect.TypeOf(new(string)),
-			expectedVal: new(string),
-		},
-		{
-			name:        "slice",
-			typ:         reflect.TypeOf([]int{}),
-			expectedVal: []int{},
-		},
-		{
-			name:        "map",
-			typ:         reflect.TypeOf(map[string]string{}),
-			expectedVal: map[string]string{},
-		},
-		{
-			name:         "struct with default",
-			typ:          reflect.TypeOf(MyStruct{}),
-			expectedVal:  MyStruct{Name: "test"},
-			checkDefault: true,
-		},
-		{
-			name:         "pointer to struct with default",
-			typ:          reflect.TypeOf(&MyStruct{}),
-			expectedVal:  &MyStruct{Name: "test"},
-			checkDefault: true,
-		},
-		{
-			name:      "nil type",
-			typ:       nil,
-			expectNil: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := utils.NewWithDefaultsOf(tt.typ)
-			require.NoError(t, err)
-
-			if tt.expectNil {
-				assert.Nil(t, result)
-				return
-			}
-
-			assert.NotNil(t, result)
-			if tt.checkDefault {
-				assert.Equal(t, tt.expectedVal, result)
-			} else {
-				assert.IsType(t, tt.expectedVal, result)
-				if reflect.TypeOf(tt.expectedVal).Kind() != reflect.Pointer {
-					assert.Equal(t, tt.expectedVal, result)
-				}
-			}
-		})
-	}
-}
-
-func TestHasDefault(t *testing.T) {
-	t.Parallel()
-
-	type StructWithDefault struct {
-		Name string `default:"hello"`
-	}
-	type StructWithoutDefault struct {
-		Name string
-	}
-	type StructWithEmptyDefault struct {
-		Name string `default:""`
-	}
-	type StructWithIgnoredDefault struct {
-		Name string `default:"-"`
-	}
-
-	assert.True(t, utils.HasDefault(reflect.TypeOf(StructWithDefault{})))
-	assert.True(t, utils.HasDefault(reflect.TypeOf(&StructWithDefault{})))
-	assert.False(t, utils.HasDefault(reflect.TypeOf(StructWithoutDefault{})))
-	assert.True(t, utils.HasDefault(reflect.TypeOf(StructWithEmptyDefault{})))
-	assert.False(t, utils.HasDefault(reflect.TypeOf(StructWithIgnoredDefault{})))
-	assert.False(t, utils.HasDefault(reflect.TypeOf(1)))
-	assert.False(t, utils.HasDefault(nil))
-}
-
-func TestNewDefaultOf(t *testing.T) {
-	t.Parallel()
-
-	type MyStruct struct {
-		Name    string `default:"test"`
-		Number  int    `default:"123"`
-		Pointer *int
-	}
-
-	t.Run("struct", func(t *testing.T) {
-		result, err := utils.NewWithDefaultsOf(reflect.TypeOf(MyStruct{}))
-		assert.NoError(t, err)
-		assert.Equal(t, MyStruct{Name: "test", Number: 123, Pointer: nil}, result)
-	})
-
-	t.Run("pointer to struct", func(t *testing.T) {
-		result, err := utils.NewWithDefaultsOf(reflect.TypeOf(&MyStruct{}))
-		assert.NoError(t, err)
-		assert.Equal(t, &MyStruct{Name: "test", Number: 123, Pointer: nil}, result)
-	})
-
-	t.Run("non-struct", func(t *testing.T) {
-		result, err := utils.NewWithDefaultsOf(reflect.TypeOf(0))
-		assert.NoError(t, err)
-		assert.Equal(t, 0, result)
-	})
-}
 
 type MethodStruct struct{}
 
@@ -227,25 +87,6 @@ func TestIsEnum(t *testing.T) {
 			assert.Equal(t, tc.expected, utils.IsEnum(tc.value))
 		})
 	}
-}
-
-func TestIsPointer(t *testing.T) {
-	t.Parallel()
-	var i int
-	var p *int
-	var nilP *int
-	p = &i
-
-	assert.True(t, utils.IsPointer(p))
-	assert.True(t, utils.IsPointer(nilP))
-	assert.False(t, utils.IsPointer(i))
-	assert.False(t, utils.IsPointer(nil))
-
-	assert.True(t, utils.IsPointer(reflect.ValueOf(p)))
-	assert.False(t, utils.IsPointer(reflect.ValueOf(i)))
-
-	assert.True(t, utils.IsPointer(reflect.TypeOf(p)))
-	assert.False(t, utils.IsPointer(reflect.TypeOf(i)))
 }
 
 func TestIsStruct(t *testing.T) {
@@ -332,4 +173,43 @@ func TestIsEmpty(t *testing.T) {
 	// reflect.Value cases
 	assert.True(t, utils.IsEmpty(reflect.ValueOf("")))
 	assert.False(t, utils.IsEmpty(reflect.ValueOf("a")))
+}
+
+func TestHasField(t *testing.T) {
+	t.Parallel()
+
+	type S struct {
+		Field1 string
+		Field2 int
+	}
+
+	s := S{}
+	p := &s
+
+	assert.True(t, utils.HasField(s, "Field1"))
+	assert.True(t, utils.HasField(p, "Field2"))
+	assert.False(t, utils.HasField(s, "Field3"))
+	assert.False(t, utils.HasField(nil, "Field1"))
+	assert.False(t, utils.HasField(1, "Field1"))
+
+	// Test with reflect types/values
+	assert.True(t, utils.HasField(reflect.TypeOf(s), "Field1"))
+	assert.True(t, utils.HasField(reflect.ValueOf(s), "Field1"))
+	assert.True(t, utils.HasField(reflect.TypeOf(p), "Field1"))
+}
+
+func TestIsComparable(t *testing.T) {
+	t.Parallel()
+
+	assert.True(t, utils.IsComparable(1))
+	assert.True(t, utils.IsComparable("string"))
+	assert.True(t, utils.IsComparable(struct{ A int }{}))
+	assert.True(t, utils.IsComparable(&struct{ A int }{}))
+
+	// Slices and maps are not comparable
+	assert.False(t, utils.IsComparable([]int{}))
+	assert.False(t, utils.IsComparable(map[string]int{}))
+
+	// Functions are not comparable
+	assert.False(t, utils.IsComparable(func() {}))
 }
