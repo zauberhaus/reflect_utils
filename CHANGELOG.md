@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/zauberhaus/reflect_utils/compare/v1.0.1...v1.0.2) (2026-11-16)
+
+
+### Bug Fixes
+
+* improve release process ([2c413d8](https://github.com/zauberhaus/reflect_utils/commit/2c413d8130b808d09f86ac3a59f23ac137d4deb1))
+
 ## [1.0.1](https://github.com/zauberhaus/reflect_utils/compare/v1.0.0...v1.0.1) (2026-11-12)
 
 
