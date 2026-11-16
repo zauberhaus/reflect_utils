@@ -1,0 +1,23 @@
+version: "0.2"
+language: en
+ignorePaths:
+  - go.mod
+  - go.sum
+  - .gitignore
+  - cspell.config.yaml
+  - terraform/*
+words:
+  - covermode
+  - coverprofile
+  - creasty
+  - dmarkham
+  - enumer
+  - genproto
+  - GOBIN
+  - gosec
+  - gotest
+  - gotestfmt
+  - GOTOOLCHAIN
+  - govulncheck
+  - stretchr
+  - zauberhaus
